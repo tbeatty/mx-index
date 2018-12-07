@@ -145,14 +145,6 @@ public class PubSubIndexer {
                 .apply("SplitResponses", ParDo.of(new SplitResponsesFn()))
                 .apply("InsertMetadata", ParDo.of(new InsertMetadataFn()))
                 .apply("BuildIndexDoc", ParDo.of(new BuildIndexDocFn()))
-                .apply("LogProcessedDoc", ParDo.of(new DoFn<String, String>() {
-                    @ProcessElement
-                    public void processElement(ProcessContext c) {
-                        String document = c.element();
-                        LOG.info("Json document: {}", document);
-                        c.output(document);
-                    }
-                }))
                 .apply("WriteIndex", ElasticsearchIO.write()
                         .withConnectionConfiguration(connection)
                         .withIdFn(doc -> {

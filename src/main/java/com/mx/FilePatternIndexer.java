@@ -85,6 +85,12 @@ public class FilePatternIndexer {
                 ElasticsearchIO.ConnectionConfiguration.create(
                         addresses, options.getIndex(), options.getType());
 
+        if (options.getUsername() != null) {
+            connection = connection
+                    .withUsername(options.getUsername())
+                    .withPassword(options.getPassword());
+        }
+
         PCollection<String> input = pipeline
                 .apply("MatchInputPattern", FileIO.match().filepattern(options.getInputPattern()))
                 .apply("ReadMatches", FileIO.readMatches().withCompression(Compression.AUTO))
@@ -115,14 +121,6 @@ public class FilePatternIndexer {
                 .apply("SplitResponses", ParDo.of(new SplitResponsesFn()))
                 .apply("InsertMetadata", ParDo.of(new InsertMetadataFn()))
                 .apply("BuildIndexDoc", ParDo.of(new BuildIndexDocFn()))
-                .apply("LogProcessedDoc", ParDo.of(new DoFn<String, String>() {
-                    @ProcessElement
-                    public void processElement(ProcessContext c) {
-                        String document = c.element();
-                        LOG.info("Json document: {}", document);
-                        c.output(document);
-                    }
-                }))
                 .apply("WriteIndex", ElasticsearchIO.write()
                         .withConnectionConfiguration(connection)
                         .withIdFn(doc -> {
